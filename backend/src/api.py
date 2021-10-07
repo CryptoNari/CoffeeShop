@@ -25,15 +25,17 @@ CORS(app)
     GET /drinks
         it should be a public endpoint
         it should contain only the drink.short() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
+    returns status code 200 and json {"success": True, "drinks": drinks}
+    where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/drinks', methods={'GET'})
 def retrieve_drinks():
     drinks = Drink.query.order_by(Drink.id).all()
-
     drinks_short = [drink.short() for drink in drinks]
-    
+
     results = {
         'success': True,
         'drinks': drinks_short
@@ -41,20 +43,23 @@ def retrieve_drinks():
 
     return jsonify(results)
 
+
 '''
 @TODO implement endpoint
     GET /drinks-detail
         it should require the 'get:drinks-detail' permission
         it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
+    returns status code 200 and json {"success": True, "drinks": drinks}
+    where drinks is the list of drinks
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/drinks-detail', methods={'GET'})
 def retrieve_drink_detail():
-
     drinks = Drink.query.order_by(Drink.id).all()
     drinks_long = [drink.long() for drink in drinks]
-    
+
     results = {
         'success': True,
         'drinks': drinks_long
@@ -62,24 +67,28 @@ def retrieve_drink_detail():
 
     return jsonify(results)
 
+
 '''
 @TODO implement endpoint
     POST /drinks
         it should create a new row in the drinks table
         it should require the 'post:drinks' permission
         it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
+    returns status code 200 and json {"success": True, "drinks": drink}
+    where drink an array containing only the newly created drink
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/drinks', methods={'POST'})
 def create_drink():
     body = request.get_json()
     new_title = body.get('title', None)
     new_recipe = body.get('recipe', None)
-    
+
     drink = Drink(
-        title = new_title,
-        recipe = new_recipe
+        title=new_title,
+        recipe=new_recipe
         )
 
     drink.insert()
@@ -91,6 +100,7 @@ def create_drink():
 
     return jsonify(results)
 
+
 '''
 @TODO implement endpoint
     PATCH /drinks/<id>
@@ -99,9 +109,12 @@ def create_drink():
         it should update the corresponding row for <id>
         it should require the 'patch:drinks' permission
         it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
+    returns status code 200 and json {"success": True, "drinks": drink}
+    where drink an array containing only the updated drink
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/drinks/<id>', methods={'PATCH'})
 def update_drink(drink_id):
     body = request.get_json()
@@ -120,6 +133,7 @@ def update_drink(drink_id):
 
     return jsonify(results)
 
+
 '''
 @TODO implement endpoint
     DELETE /drinks/<id>
@@ -127,9 +141,12 @@ def update_drink(drink_id):
         it should respond with a 404 error if <id> is not found
         it should delete the corresponding row for <id>
         it should require the 'delete:drinks' permission
-    returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
+    returns status code 200 and json {"success": True, "delete": id}
+    where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 '''
+
+
 @app.route('/drinks/<id>', methods={'DELETE'})
 def delete_drink(drink_id):
     try:
@@ -139,15 +156,34 @@ def delete_drink(drink_id):
             'success': True,
             'delete': drink_id
         }
-    except:
+    except IndexError:
         abort(422)
 
     return jsonify(results)
+
 
 # Error Handling
 '''
 Example error handling for unprocessable entity
 '''
+
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "success": False,
+        "error": 400,
+        "message": "bad request"
+    }), 400
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        "success": False,
+        "error": 404,
+        "message": "resource not found"
+    }), 404
 
 
 @app.errorhandler(422)
@@ -157,6 +193,15 @@ def unprocessable(error):
         "error": 422,
         "message": "unprocessable"
     }), 422
+
+
+@app.errorhandler(500)
+def server_error(error):
+    return jsonify({
+        "success": False,
+        "error": 500,
+        "message": "internal server error"
+    }), 500
 
 
 '''
