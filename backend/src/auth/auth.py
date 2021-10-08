@@ -10,24 +10,26 @@ AUTH0_DOMAIN = 'fseduc.eu.auth0.com'
 ALGORITHMS = ['RS256']
 API_AUDIENCE = 'Coffee'
 
-## AuthError Exception
+
 '''
 AuthError Exception
 A standardized way to communicate auth failure modes
 '''
+
+
 class AuthError(Exception):
     def __init__(self, error, status_code):
         self.error = error
         self.status_code = status_code
 
 
-## Auth Header
-
 '''
-    Verify/Validate Request Header 
+    Verify/Validate Request Header
     RETURNS:
         JWT token
 '''
+
+
 def get_token_auth_header():
     # Check if Authorization Header is present
     if 'Authorization' not in request.headers:
@@ -35,7 +37,7 @@ def get_token_auth_header():
             'code': 'autorization_header_missing',
             'description': 'Autorization header is expected'
         }, 401)
-    
+
     auth_header = request.headers['Authorization']
     header_parts = auth_header.split(' ')
 
@@ -55,20 +57,22 @@ def get_token_auth_header():
 
 
 '''
-    Check User/token permissions 
+    Check User/token permissions
     INPUTS:
         permissions: Needed Route permissions
-        payload: decoded token 
+        payload: decoded token
     RETURNS:
         True/False
 '''
+
+
 def check_permissions(permission, payload):
     if 'permissions' not in payload:
         raise AuthError({
             'code': 'invalid_payload',
             'description': 'No Permissions included in token'
         }, 401)
-    
+
     if permission not in payload['permissions']:
         raise AuthError({
             'code': 'not_authorized',
@@ -77,6 +81,7 @@ def check_permissions(permission, payload):
 
     return True
 
+
 '''
     Implement verify_decode_jwt(token) method
     INPUTS:
@@ -84,6 +89,8 @@ def check_permissions(permission, payload):
     RETURNS:
         payload: decoded token
 '''
+
+
 def verify_decode_jwt(token):
     # Request Auth0 Public key
     jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
@@ -129,7 +136,8 @@ def verify_decode_jwt(token):
         except jwt.JWTClaimsError:
             raise AuthError({
                 'code': 'invalid_claims',
-                'description': 'Incorrect claims. Please, check the audience and issuer.'
+                'description':
+                    'Incorrect claims. Please, check the audience and issuer.'
             }, 401)
         except Exception:
             raise AuthError({
@@ -149,6 +157,8 @@ def verify_decode_jwt(token):
     RETURNS:
     Decorator which passes the decoded payload to the decorated method
 '''
+
+
 def requires_auth(permission=''):
     def requires_auth_decorator(f):
         @wraps(f)

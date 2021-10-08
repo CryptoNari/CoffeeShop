@@ -231,4 +231,3 @@ def server_error(error):
         "error": error.status_code,
         "message": error.description
     }), error.status_code
-
