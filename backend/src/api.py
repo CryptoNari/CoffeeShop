@@ -22,136 +22,135 @@ CORS(app)
 
 # ROUTES
 '''
-@TODO implement endpoint
-    GET /drinks
-        it should be a public endpoint
-        it should contain only the drink.short() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks}
-    where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
+    Endpoint GET /drinks
 '''
 
 
 @app.route('/drinks', methods={'GET'})
 def retrieve_drinks():
-    drinks = Drink.query.order_by(Drink.id).all()
-    drinks_short = [drink.short() for drink in drinks]
+    try:
+        drinks = Drink.query.order_by(Drink.id).all()
+        drinks_short = [drink.short() for drink in drinks]
 
-    results = {
-        'success': True,
-        'drinks': drinks_short
-    }
+        results = {
+            'success': True,
+            'drinks': drinks_short
+        }
+    except Exception as e:
+        print('ERROR', str(e))
+        abort(422)
 
     return jsonify(results)
 
 
 '''
-@TODO implement endpoint
-    GET /drinks-detail
-        it should require the 'get:drinks-detail' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks}
-    where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
+    Endpoint GET /drinks-detail
 '''
 
 
 @app.route('/drinks-detail', methods={'GET'})
+@requires_auth('get:drinks-detail')
 def retrieve_drink_detail():
-    drinks = Drink.query.order_by(Drink.id).all()
-    drinks_long = [drink.long() for drink in drinks]
+    try:
+        drinks = Drink.query.order_by(Drink.id).all()
+        drinks_long = [drink.long() for drink in drinks]
 
-    results = {
-        'success': True,
-        'drinks': drinks_long
-    }
+        results = {
+            'success': True,
+            'drinks': drinks_long
+        }
+    except Exception as e:
+        print('ERROR', str(e))
+        abort(422)
 
     return jsonify(results)
 
 
 '''
-@TODO implement endpoint
-    POST /drinks
-        it should create a new row in the drinks table
-        it should require the 'post:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink}
-    where drink an array containing only the newly created drink
-        or appropriate status code indicating reason for failure
+    Endpoint POST /drinks
 '''
 
 
 @app.route('/drinks', methods={'POST'})
+@requires_auth('post:drinks')
 def create_drink():
-    body = request.get_json()
-    new_title = body.get('title', None)
-    new_recipe = body.get('recipe', None)
+    try:
+        body = request.get_json()
+        if 'title' in body and 'recipe' in body:
+            new_title = body.get('title')
+            new_recipe = body.get('recipe')
+        else:
+            abort(400)
 
-    drink = Drink(
-        title=new_title,
-        recipe=new_recipe
-        )
+        drink = Drink(
+            title=new_title,
+            recipe=json.dumps(new_recipe)
+            )
 
-    drink.insert()
+        drink.insert()
 
-    results = {
-        'success': True,
-        'drinks': drink.long()
-    }
+        results = {
+            'success': True,
+            'drinks': [drink.long()]
+        }
+    except Exception as e:
+        print('ERROR', str(e))
+        abort(422)
 
     return jsonify(results)
 
 
 '''
-@TODO implement endpoint
-    PATCH /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should update the corresponding row for <id>
-        it should require the 'patch:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink}
-    where drink an array containing only the updated drink
-        or appropriate status code indicating reason for failure
+    Endpoint PATCH /drinks/<id>
+        <id> is the existing Drink id
 '''
 
 
 @app.route('/drinks/<id>', methods={'PATCH'})
+@requires_auth('patch:drinks')
 def update_drink(drink_id):
-    body = request.get_json()
-    patch_title = body.get('title', None)
-    patch_recipe = body.get('recipe', None)
+    try:
+        drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+        # ID not found
+        if drink is None:
+            abort(404)
 
-    drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
-    drink.title = patch_title
-    drink.recipe = patch_recipe
-    drink.update()
+        body = request.get_json()
+        if 'title' in body:
+            drink.title = body.get('title')
+        if 'recipe' in body:
+            drink.recipe = json.dumps(body.get('recipe'))
 
-    results = {
-        'success': True,
-        'drinks': drink.long()
-    }
+        # Update Drink
+        drink.update()
+
+        results = {
+            'success': True,
+            'drinks': [drink.long()]
+        }
+
+    except Exception as e:
+        print('ERROR', str(e))
+        abort(422)
 
     return jsonify(results)
 
 
 '''
-@TODO implement endpoint
-    DELETE /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should delete the corresponding row for <id>
-        it should require the 'delete:drinks' permission
-    returns status code 200 and json {"success": True, "delete": id}
-    where id is the id of the deleted record
-        or appropriate status code indicating reason for failure
+    Endpoint DELETE /drinks/<id>
+        <id> is the existing Drink id
 '''
 
 
 @app.route('/drinks/<id>', methods={'DELETE'})
+@requires_auth('delete:drinks')
 def delete_drink(drink_id):
     try:
         drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+        # ID not found
+        if drink is None:
+            abort(404)
+        # Delete ID
         drink.delete()
         results = {
             'success': True,
@@ -164,9 +163,8 @@ def delete_drink(drink_id):
     return jsonify(results)
 
 
-# Error Handling
 '''
-Example error handling for unprocessable entity
+Error handling for unprocessable entity
 '''
 
 
