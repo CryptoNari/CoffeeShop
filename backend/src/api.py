@@ -1,3 +1,4 @@
+from logging import ERROR
 import os
 from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
@@ -156,7 +157,8 @@ def delete_drink(drink_id):
             'success': True,
             'delete': drink_id
         }
-    except IndexError:
+    except Exception as e:
+        print('ERROR', str(e))
         abort(422)
 
     return jsonify(results)
@@ -175,6 +177,24 @@ def bad_request(error):
         "error": 400,
         "message": "bad request"
     }), 400
+
+
+@app.errorhandler(401)
+def unauthorized(error):
+    return jsonify({
+        "success": False,
+        "error": 401,
+        "message": "unauthorized"
+    }), 401
+
+
+@app.errorhandler(403)
+def forbidden(error):
+    return jsonify({
+        "success": False,
+        "error": 403,
+        "message": "forbidden"
+    }), 403
 
 
 @app.errorhandler(404)
@@ -204,24 +224,11 @@ def server_error(error):
     }), 500
 
 
-'''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
-    each error handler should return (with approprate messages):
-             jsonify({
-                    "success": False,
-                    "error": 404,
-                    "message": "resource not found"
-                    }), 404
+@app.errorhandler(AuthError)
+def server_error(error):
+    return jsonify({
+        "success": False,
+        "error": error.status_code,
+        "message": error.description
+    }), error.status_code
 
-'''
-
-'''
-@TODO implement error handler for 404
-    error handler should conform to general task above
-'''
-
-
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above
-'''
