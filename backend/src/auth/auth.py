@@ -19,7 +19,7 @@ A standardized way to communicate auth failure modes
 
 class AuthError(Exception):
     def __init__(self, error, status_code):
-        self.error = error
+        self.description = error
         self.status_code = status_code
 
 
@@ -40,14 +40,14 @@ def get_token_auth_header():
 
     auth_header = request.headers['Authorization']
     header_parts = auth_header.split(' ')
-
     # Check if Header is malformed
     if len(header_parts) != 2:
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Autorization header is invalid/malformed'
         }, 401)
-    elif header_parts[0].lower() == 'bearer':
+    # Check if header is bearer token
+    elif header_parts[0].lower() != 'bearer':
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Autorization header is no bearer token'
@@ -67,12 +67,13 @@ def get_token_auth_header():
 
 
 def check_permissions(permission, payload):
+    # Check if payload has an Permission Header
     if 'permissions' not in payload:
         raise AuthError({
             'code': 'invalid_payload',
             'description': 'No Permissions included in token'
         }, 401)
-
+    # Check if necessary permission is available
     if permission not in payload['permissions']:
         raise AuthError({
             'code': 'not_authorized',
@@ -114,7 +115,7 @@ def verify_decode_jwt(token):
                 'n': key['n'],
                 'e': key['e']
             }
-
+    # Encode token and return payload
     if rsa_key:
         try:
             payload = jwt.decode(

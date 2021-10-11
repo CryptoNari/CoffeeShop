@@ -18,7 +18,7 @@ CORS(app)
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 !! Running this funciton will add one
 '''
-# db_drop_and_create_all()
+db_drop_and_create_all()
 
 # ROUTES
 '''
@@ -50,7 +50,7 @@ def retrieve_drinks():
 
 @app.route('/drinks-detail', methods={'GET'})
 @requires_auth('get:drinks-detail')
-def retrieve_drink_detail():
+def retrieve_drink_detail(payload):
     try:
         drinks = Drink.query.order_by(Drink.id).all()
         drinks_long = [drink.long() for drink in drinks]
@@ -73,7 +73,7 @@ def retrieve_drink_detail():
 
 @app.route('/drinks', methods={'POST'})
 @requires_auth('post:drinks')
-def create_drink():
+def create_drink(payload):
     try:
         body = request.get_json()
         if 'title' in body and 'recipe' in body:
@@ -82,17 +82,29 @@ def create_drink():
         else:
             abort(400)
 
-        drink = Drink(
-            title=new_title,
-            recipe=json.dumps(new_recipe)
-            )
+        drink_check = (
+            Drink.query
+            .filter(Drink.title == new_title)
+            .one_or_none()
+        )
 
-        drink.insert()
+        if drink_check:
+            raise AuthError({
+                'code': 'invalid_title',
+                'description': 'Drink title is already in use'
+            }, 422)
+        else:
+            drink = Drink(
+                title=new_title,
+                recipe=json.dumps([new_recipe])
+                )
 
-        results = {
-            'success': True,
-            'drinks': [drink.long()]
-        }
+            drink.insert()
+
+            results = {
+                'success': True,
+                'drinks': [drink.long()]
+            }
     except Exception as e:
         print('ERROR', str(e))
         abort(422)
@@ -101,27 +113,31 @@ def create_drink():
 
 
 '''
-    Endpoint PATCH /drinks/<id>
-        <id> is the existing Drink id
+    Endpoint PATCH /drinks/<drink_id>
+        <drink_id> is the existing Drink id
 '''
 
 
-@app.route('/drinks/<id>', methods={'PATCH'})
+@app.route('/drinks/<drink_id>', methods={'PATCH'})
 @requires_auth('patch:drinks')
-def update_drink(drink_id):
+def update_drink(payload, drink_id):
     try:
-        drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+        drink = (
+            Drink.query
+            .filter(Drink.id == drink_id)
+            .one_or_none()
+        )
         # ID not found
         if drink is None:
             abort(404)
 
+        # Update Drink
         body = request.get_json()
         if 'title' in body:
             drink.title = body.get('title')
         if 'recipe' in body:
-            drink.recipe = json.dumps(body.get('recipe'))
+            drink.recipe = json.dumps([body.get('recipe')])
 
-        # Update Drink
         drink.update()
 
         results = {
@@ -137,14 +153,14 @@ def update_drink(drink_id):
 
 
 '''
-    Endpoint DELETE /drinks/<id>
-        <id> is the existing Drink id
+    Endpoint DELETE /drinks/<drink_id>
+        <drink_id> is the existing Drink id
 '''
 
 
-@app.route('/drinks/<id>', methods={'DELETE'})
+@app.route('/drinks/<drink_id>', methods={'DELETE'})
 @requires_auth('delete:drinks')
-def delete_drink(drink_id):
+def delete_drink(payload, drink_id):
     try:
         drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
         # ID not found
